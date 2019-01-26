@@ -1,0 +1,10 @@
+*.pyc
+*.profile
+*.db
+*.sqlite3
+*.txt
+__pycache__/*
+myvenv/*
+static/*
+test_folder/*
+.DS_Store
