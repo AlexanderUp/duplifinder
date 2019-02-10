@@ -26,17 +26,17 @@ import hashlib
 
 '''
 -debug debug option;
--fl file list;
 -wh hash list;
--s specify path to save report
+-s specify path to save report.
+
+NB!!! Path to folder to be specified LAST!!!
 
 Example:
--debug -fl -s 'path_to_folder'
+-debug -wh -s 'path_to_folder'
 '''
 
 DEBUG = True if '-debug' in sys.argv else False
-# FILE_LIST = True if '-fl' in sys.argv else False
-WRITE_HASH = True if '-wh' is sys.argv else False
+WRITE_HASH = True if '-wh' in sys.argv else False
 SAVE = True if '-s' in sys.argv else False
 
 # /Users/alexanderuperenko/Desktop/Python - my projects/test_folder
@@ -58,6 +58,10 @@ class Lister():
 
     def change_dir(self):
         self.path = input('Input path:\n').rstrip(os.sep)
+        if not self.path:
+            print('You input empty path!')
+            sys.exit('Exiting...')
+        # some checks and exception handlers to be added here
         self.folders = [self.path]
         print('self.folders changed to: {}'.format(self.folders))
         return None
@@ -116,7 +120,6 @@ class Lister():
                         f.write('\t' + file + '\n')
         return None
 
-    # def get_file_hash_list(self, WRITE_HASH=False):
     def get_file_hash_list(self):
         output_file = self.get_output_filename('output_****_file_list.txt')
         assert isinstance(output_file, str)
@@ -125,7 +128,7 @@ class Lister():
                 for file in sorted(os.listdir(folder)):
                     path_to_file = os.path.join(folder, file)
                     if os.path.isfile(path_to_file):
-                        # print('file: {}'.format(path_to_file))
+                        # this condition still alive only as secondary type of output file list report
                         if WRITE_HASH:
                             hash = self.get_hash(self.binary_read(path_to_file))
                             f.write('{} {}\n'.format(hash, path_to_file))
@@ -134,7 +137,7 @@ class Lister():
         return None
 
     def get_file_hash_list_by_walk(self):
-        output_file = self.get_output_filename('output_by_walk_****_file_list.sha256.txt')
+        output_file = self.get_output_filename('output_****_by_walk_file_list.sha256.txt')
         assert isinstance(output_file, str)
         with open(output_file, 'w') as f:
             for root, dirs, files in os.walk(self.path):
@@ -151,23 +154,6 @@ class Lister():
             size_in_megabytes = total_bytes / 1024 / 1024
             print('\'{}\' consumes {} bytes in {} files.'.format(root, total_bytes, len(files)))
             print('\'{}\' consumes {} megabytes in {} files.'.format(root, size_in_megabytes, len(files)))
-        return None
-
-    def test_get_file_list(self):
-        '''Performance test without file handling - no file open, nothing wrote.'''
-        for folder in self.folders:
-            for file in os.listdir(folder):
-                path_to_file = folder + os.sep + file
-                if os.path.isfile(path_to_file):
-                    hash = self.get_hash(self.binary_read(path_to_file))
-        return None
-
-    def test_get_file_list_by_walk(self):
-        '''Performance test without file handling - no file open, nothing wrote.'''
-        for root, dirs, files in os.walk(self.path):
-            for file in files:
-                path_to_file = os.path.join(root, file)
-                hash = self.get_hash(self.binary_read(path_to_file))
         return None
 
     def save_as(self):
@@ -218,13 +204,13 @@ def debug():
     else:
         l.get_file_list()
     l.get_files_size()
-    # l.test_get_file_list()
-    # l.test_get_file_list_by_walk()
 
 
 if __name__ == '__main__':
     print('=' * 75)
     print('DEBUG is {}'.format(DEBUG))
+    print('WRITE_HASH is {}'.format(WRITE_HASH))
+    print('SAVE is {}'.format(SAVE))
     if DEBUG:
         debug()
     else:
