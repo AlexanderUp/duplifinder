@@ -25,13 +25,16 @@ import hashlib
 
 
 '''
--debug debug option;
--wh hash list;
--s specify path to save report.
+CLI arguments:
+
+-debug - debug option;
+-wh  - hash list;
+-s - specify path to save report.
 
 NB!!! Path to folder to be specified LAST!!!
 
 Example:
+
 -debug -wh -s 'path_to_folder'
 '''
 
