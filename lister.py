@@ -22,6 +22,7 @@
 import os
 import sys
 import hashlib
+import shutil
 
 
 '''
@@ -55,9 +56,10 @@ class Lister():
             self.path = sys.argv[-1].rstrip(os.sep)
             self.folders = [self.path]
         else:
-            # self.path = '/Users/alexanderuperenko/Desktop/Python - my projects/duplifinder/test_folder'
             self.change_dir()
-        # self.folders = [self.path]
+        self.result_hash_dictionary = None
+        self.duplicates = None
+        return None
 
     def change_dir(self):
         self.path = input('Input path:\n').rstrip(os.sep)
@@ -69,14 +71,12 @@ class Lister():
         print('self.folders changed to: {}'.format(self.folders))
         return None
 
-    def binary_read(self, file):
+    @staticmethod
+    def get_hash(file):
         with open(file, 'br') as f:
-            res = f.read()
-        return res
-
-    def get_hash(self, file):
+            binary_content = f.read()
         h = hashlib.sha256()
-        h.update(file)
+        h.update(binary_content)
         return h.hexdigest()
 
     def get_folder_list(self, temp_path):
@@ -133,7 +133,7 @@ class Lister():
                     if os.path.isfile(path_to_file):
                         # this condition still alive only as secondary type of output file list report
                         if WRITE_HASH:
-                            hash = self.get_hash(self.binary_read(path_to_file))
+                            hash = self.get_hash(path_to_file)
                             f.write('{} {}\n'.format(hash, path_to_file))
                         else:
                             f.write('{}\n'.format(path_to_file))
@@ -146,7 +146,7 @@ class Lister():
             for root, dirs, files in os.walk(self.path):
                 for file in files:
                     path_to_file = os.path.join(root, file)
-                    hash = self.get_hash(self.binary_read(path_to_file))
+                    hash = self.get_hash(path_to_file)
                     f.write('{} {}\n'.format(hash, path_to_file))
         return None
 
@@ -159,7 +159,7 @@ class Lister():
             print('\'{}\' consumes {} megabytes in {} files.'.format(root, size_in_megabytes, len(files)))
         return None
 
-    def save_as(self):
+    def save_to_directory(self):
         path_to_save_report = input('Input path to save report...\n')
         if path_to_save_report and os.path.isdir(path_to_save_report):
             # redundant except handling??
@@ -183,10 +183,114 @@ class Lister():
         print('new output file name will include: {}'.format(file_name))
         return mask.replace('****', file_name)
 
+    def _create_hash_dictionary(self):
+        '''
+        Create dictionary of hashes and associated filesself.
+        ['hash']:['path to associated files']
+        '''
+        result = {}
+        for folder in self.folders:
+            for file in sorted(os.listdir()):
+                if os.path.isfile(file):
+                    hash = self.get_hash(file)
+                if hash in result.keys():
+                    result[hash].append(file)
+                else:
+                    result[hash] = [file]
+        self.result_hash_dictionary = result
+        return None
+
+    def _find_duplicates(self):
+        duplicates = {}
+        for key in self.result_hash_dictionary.keys():
+            if len(self.result_hash_dictionary[key]) > 1:
+                duplicates[key] = self.result_hash_dictionary[key]
+        self.duplicates = duplicates
+
+    def _log_to_file(self):
+        '''
+        Create a file with written file hash tree.
+        '''
+        path_to_out_file, source_file_name = os.path.split(self.source_file)
+        source_file_name_without_extention, source_file_extention = os.path.splitext(source_file_name)
+        out_file = source_file_name_without_extention + '.log' + source_file_extention
+        print('out_file: {}'.format(out_file))
+        with open(out_file, 'w') as out:
+            out.write(pprint.pformat(self.result_hash_dictionary, width=1000))
+        return None
+
+    def _log_to_file_duplicates(self):
+        path, file = os.path.split(self.source_file)
+        os.chdir(path)
+        out_file = os.path.splitext(file)[0] + '_duplicates.txt'
+        with open(out_file, 'w') as out:
+            out.write(pprint.pformat(self.duplicates, width=1000))
+        return None
+
+    def _remove_duplicates(self):
+        for file_hash in self.duplicates.keys():
+            for path_to_hashed_file in self.duplicates[file_hash][1:]:
+                # to be checked
+                os.remove(path_to_hashed_file)
+        return None
+
+    # to be refactored
+    def _move_duplicates(self, destination_folder):
+        '''
+        Moves all duplicates to specified folder.
+        '''
+        self._create_destination_dir(destination_folder)
+        for file_hash in self.duplicates.keys():
+            for path_to_hashed_file in self.duplicates[file_hash][1:]:
+                shutil.move(path_to_hashed_file, destination_folder)
+                print('{} ===> {}'.format(path_to_hashed_file[-15:], destination_folder[-15:]))
+        return None
+
+    # to be refactored
+    def move_duplicates_to_same_named_folder(self):
+        '''
+        Moves all duplicates to folder with name same to first file in list of file duplicates.
+        '''
+        next(get_destination_folder_name)
+        for file_hash in self.duplicates.keys():
+            destination_folder = self._get_destination_folder_name().send(file_hash)
+            self._create_destination_dir(destination_folder)
+            for path_to_hashed_file in self.duplicates[file_hash][1:]:
+                shutil.move(path_to_hashed_file, destination_folder)
+                print('{} ===> {}'.format(path_to_hashed_file[-15:], destination_folder[-15:]))
+        return None
+
+    # next(get_destination_folder_name)
+    # get_destination_folder_name.send(file_hash)
+    def _get_destination_folder_name(self):
+        destination = ''
+        while True:
+            file_hash = yield destination
+            destination = os.path.splitext(self.duplicates[file_hash][0])[0]
+        return None
+
+    def _create_destination_dir(self, destination_dir_name):
+        try:
+            os.mkdir(destination_folder)
+            print('Created folder: {}'.format(destination_folder))
+        except FileExistsError as err:
+            print('Error {} occured with {}'.format(err, destination_folder))
+        # exception to be specified more accurately
+        except Exception as err:
+            print('Error occured.\n{}'.format(err))
+        return None
+
+    def _remove_emtpy_folder(self, path_to_folder):
+        # if os.path.isdir(path_to_folder) and len(os.listdir(path_to_folder)) == 0:
+        if os.path.isdir(path_to_folder) and not bool(os.listdir(path_to_folder)):
+            os.rmdir(path_to_folder)
+            print('Removed: {}'.format(path_to_folder))
+        return None
+
 def main():
     l = Lister()
     if SAVE:
-        l.save_as()
+        l.save_to_directory()
     l.get_folder_list(l.path)
     if WRITE_HASH:
         l.get_file_hash_list()
@@ -198,7 +302,7 @@ def debug():
     l = Lister()
     # l.change_dir()
     if SAVE:
-        l.save_as()
+        l.save_to_directory()
     l.get_folder_list(l.path)
     l.print_folder_list()
     if WRITE_HASH:
