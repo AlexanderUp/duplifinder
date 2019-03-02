@@ -4,22 +4,23 @@
 import multiprocessing
 import hashlib
 import os
-import lister
+from lister import Lister
 
 # path = '/Users/alexanderuperenko/Desktop/Python - my projects/duplifinder/test_folder'
 path = '/Users/alexanderuperenko/Downloads/671854b0df07ae4198879ccde5e759f0a77949331a111046b04b3f936460f51d/media'
 
-def get_hash(file):
-    with open(file, 'br') as f:
-        binary_content = f.read()
-    h = hashlib.sha256()
-    h.update(binary_content)
-    return h.hexdigest()
+# def get_hash(file):
+#     with open(file, 'br') as f:
+#         binary_content = f.read()
+#     h = hashlib.sha256()
+#     h.update(binary_content)
+#     return h.hexdigest()
 
 def consumer(input_q):
     while True:
         item = input_q.get()
-        hash = get_hash(item)
+        hash = Lister.get_hash(item)
+        # hash = get_hash(item)
         print('{} => {}'.format(hash, item))
         input_q.task_done()
     return None
@@ -39,6 +40,14 @@ def main():
     cons_p2 = multiprocessing.Process(target=consumer, args=(q,))
     cons_p2.daemon = True
     cons_p2.start()
+
+    cons_p3 = multiprocessing.Process(target=consumer, args=(q,))
+    cons_p3.daemon = True
+    cons_p3.start()
+
+    cons_p4 = multiprocessing.Process(target=consumer, args=(q,))
+    cons_p4.daemon = True
+    cons_p4.start()
 
     sequence = []
     print('path: {}'.format(path))
