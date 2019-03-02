@@ -112,6 +112,20 @@ class FileAnalyzer():
                 print('{} ===> {}'.format(path_to_hashed_file[-15:], destination_folder[-15:]))
         return None
 
+    # PREVIOUS IMPLEMENTATION OF MOVE_DUPLICATES FUNCTION
+    # def move_duplicates(self):
+    #     for file_hash in self.duplicates.keys():
+    #         destination_folder = os.path.splitext(self.duplicates[file_hash][0])[0]
+    #         try:
+    #             os.mkdir(destination_folder)
+    #         except FileExistsError as err:
+    #             print('Error {} occured with {}'.format(err, destination_folder))
+    #         print('Created folder: {}'.format(destination_folder))
+    #         for path_to_hashed_file in self.duplicates[file_hash][1:]:
+    #             shutil.move(path_to_hashed_file, destination_folder)
+    #             print('{} ===> {}'.format(path_to_hashed_file[-15:], destination_folder[-15:]))
+    #     return None
+
     # next(get_destination_folder_name)
     # get_destination_folder_name.send(file_hash)
     def _get_destination_folder_name(self):
