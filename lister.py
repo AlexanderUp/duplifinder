@@ -23,6 +23,7 @@ import os
 import sys
 import hashlib
 import shutil
+import pprint
 
 
 '''
@@ -30,7 +31,8 @@ CLI arguments:
 
 -debug - debug option;
 -wh  - hash list;
--s - specify path to save report.
+-s - specify path to save report;
+-r - remove duplicates.
 
 NB!!! Path to folder to be specified LAST!!!
 
@@ -42,6 +44,7 @@ Example:
 DEBUG = True if '-debug' in sys.argv else False
 WRITE_HASH = True if '-wh' in sys.argv else False
 SAVE = True if '-s' in sys.argv else False
+REMOVE = True if '-r' in sys.argv else False
 
 # /Users/alexanderuperenko/Desktop/Python - my projects/test_folder
 
@@ -190,13 +193,14 @@ class Lister():
         '''
         result = {}
         for folder in self.folders:
-            for file in sorted(os.listdir()):
-                if os.path.isfile(file):
-                    hash = self.get_hash(file)
-                if hash in result.keys():
-                    result[hash].append(file)
-                else:
-                    result[hash] = [file]
+            for file in sorted(os.listdir(folder)):
+                path_to_file = os.path.join(folder, file)
+                if os.path.isfile(path_to_file):
+                    hash = self.get_hash(path_to_file)
+                    if hash in result.keys():
+                        result[hash].append(path_to_file)
+                    else:
+                        result[hash] = [path_to_file]
         self.result_hash_dictionary = result
         return None
 
@@ -211,6 +215,7 @@ class Lister():
         '''
         Create a file with written file hash tree.
         '''
+        # path_to_out_file, source_file_name to be specified more carefully
         path_to_out_file, source_file_name = os.path.split(self.source_file)
         source_file_name_without_extention, source_file_extention = os.path.splitext(source_file_name)
         out_file = source_file_name_without_extention + '.log' + source_file_extention
@@ -220,6 +225,7 @@ class Lister():
         return None
 
     def _log_to_file_duplicates(self):
+        # source file to be specified more carefully
         path, file = os.path.split(self.source_file)
         os.chdir(path)
         out_file = os.path.splitext(file)[0] + '_duplicates.txt'
@@ -227,27 +233,38 @@ class Lister():
             out.write(pprint.pformat(self.duplicates, width=1000))
         return None
 
+    def _print_duplicates(self):
+        for file in self.duplicates:
+            pprint.pprint('{} => {}'.format(file[-10:], self.duplicates[file]), width=150)
+        return None
+
     def _remove_duplicates(self):
         for file_hash in self.duplicates.keys():
             for path_to_hashed_file in self.duplicates[file_hash][1:]:
-                # to be checked
-                os.remove(path_to_hashed_file)
+                try:
+                    os.remove(path_to_hashed_file)
+                    print('Removed: {}'.format(path_to_hashed_file))
+                except Exception as err:
+                    print('Error occured: {}'.format(err))
         return None
 
     # to be refactored
-    def _move_duplicates(self, destination_folder):
+    def _move_duplicates(self, destination_dir_name):
         '''
         Moves all duplicates to specified folder.
         '''
-        self._create_destination_dir(destination_folder)
+        self._create_destination_dir(destination_dir_name)
         for file_hash in self.duplicates.keys():
             for path_to_hashed_file in self.duplicates[file_hash][1:]:
-                shutil.move(path_to_hashed_file, destination_folder)
-                print('{} ===> {}'.format(path_to_hashed_file[-15:], destination_folder[-15:]))
+                file_name = os.path.basename(path_to_hashed_file)
+                destination_path = os.path.join(destination_dir_name, file_name)
+                # shutil.move(path_to_hashed_file, destination_dir_name)
+                shutil.move(path_to_hashed_file, destination_path)
+                print('{} ===> {}'.format(path_to_hashed_file[-15:], destination_path[-15:]))
         return None
 
     # to be refactored
-    def move_duplicates_to_same_named_folder(self):
+    def _move_duplicates_to_same_named_folder(self):
         '''
         Moves all duplicates to folder with name same to first file in list of file duplicates.
         '''
@@ -271,13 +288,13 @@ class Lister():
 
     def _create_destination_dir(self, destination_dir_name):
         try:
-            os.mkdir(destination_folder)
-            print('Created folder: {}'.format(destination_folder))
+            os.mkdir(destination_dir_name)
+            print('Created folder: {}'.format(destination_dir_name))
         except FileExistsError as err:
-            print('Error {} occured with {}'.format(err, destination_folder))
+            print('Error {} occured with {}'.format(err, destination_dir_name))
         # exception to be specified more accurately
         except Exception as err:
-            print('Error occured.\n{}'.format(err))
+            print('Error occured:\n{}'.format(err))
         return None
 
     def _remove_emtpy_folder(self, path_to_folder):
@@ -312,13 +329,25 @@ def debug():
         l.get_file_list()
     l.get_files_size()
 
+def main_remove_duplicates():
+    l = Lister()
+    l.get_folder_list(l.path)
+    l.print_folder_list()
+    l._create_hash_dictionary()
+    l._find_duplicates()
+    l._print_duplicates()
+    l._remove_duplicates()
+
 
 if __name__ == '__main__':
     print('=' * 75)
     print('DEBUG is {}'.format(DEBUG))
     print('WRITE_HASH is {}'.format(WRITE_HASH))
     print('SAVE is {}'.format(SAVE))
+    print('REMOVE is {}'.format(REMOVE))
     if DEBUG:
         debug()
+    elif REMOVE:
+        main_remove_duplicates()
     else:
         main()
