@@ -9,12 +9,6 @@ from lister import Lister
 # path = '/Users/alexanderuperenko/Desktop/Python - my projects/duplifinder/test_folder'
 path = '/Users/alexanderuperenko/Downloads/671854b0df07ae4198879ccde5e759f0a77949331a111046b04b3f936460f51d/media'
 
-# def get_hash(file):
-#     with open(file, 'br') as f:
-#         binary_content = f.read()
-#     h = hashlib.sha256()
-#     h.update(binary_content)
-#     return h.hexdigest()
 
 def consumer(input_q):
     while True:
