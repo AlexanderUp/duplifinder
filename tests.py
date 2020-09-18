@@ -23,13 +23,13 @@ class MyTest(unittest.TestCase):
         self.l._create_hash_dictionary()
         self.l._find_duplicates()
 
+    def tearDown(self):
+        pass
+
     def test_move_duplicates(self):
         self.l._move_duplicates(DESTINATION)
         self.assertFalse(os.listdir(DESTINATION))
         self.assertTrue(bool(os.listdir(DESTINATION)))
-
-    def tearDown(self):
-        pass
 
 
 if __name__ == '__main__':

@@ -9,6 +9,7 @@ import shutil
 
 # TODO:
 # file names utf-8 encoding
+# use argparse module
 
 '''
 CLI arguments:
@@ -151,6 +152,18 @@ class Lister():
             print(err)
         return None
 
+    def _get_file_list(self):
+        for root, dirs, files in os.walk(self._path):
+            print('root: ', root)
+            for file in files:
+                if not file.startswith('.'):
+                    path = os.path.join(root, file)
+                    hash = self.get_hash(path)
+                    print(f'{hash} {path}')
+        return None
+
+    def update_db(self):
+        pass
 
 def main():
     l = Lister()
@@ -163,10 +176,15 @@ def main():
     if MOVE:
         l._move_duplicates()
 
+def test():
+    l = Lister()
+    l._get_file_list()
+
 
 if __name__ == '__main__':
     print('=' * 75)
     print('FILE_LIST is {}'.format(FILE_LIST))
     print('REMOVE is {}'.format(REMOVE))
     print('MOVE is {}'.format(MOVE))
-    main()
+    # main()
+    test()
