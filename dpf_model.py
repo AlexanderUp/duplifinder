@@ -9,23 +9,26 @@ from sqlalchemy import Integer
 from sqlalchemy import String
 
 
+import os
+
+
 metadata = MetaData()
+
 
 table_hashes = Table('hashes', metadata,
                     Column('id', Integer, primary_key=True),
                     Column('hash', String, nullable=False),
                     Column('path', String, unique=True, nullable=False),
+                    Column('creation_time', Integer, nullable=False),
                     )
 
 
 class HashTable():
 
-    def __init__(self, hash, path):
+    def __init__(self, hash, path, creation_time):
         self.hash = hash
         self.path = path
+        self.creation_time = creation_time
 
-    def get_file_name(self):
-        pass
-
-    def get_file_folder(self):
-        pass
+    def __repr__(self):
+        return f'<File: {self.hash} {self.creation_time} {os.path.basename(self.path)}>'

@@ -7,6 +7,8 @@ import argparse
 import hashlib
 import shutil
 
+import dpf_model as dbm
+
 
 from sqlalchemy import create_engine
 from sqlalchemy import func
@@ -14,7 +16,6 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy.orm import mapper
 
 
-import dpf_model as dbm
 from dpf_model import HashTable
 
 
@@ -22,10 +23,10 @@ mapper(dbm.HashTable, dbm.table_hashes)
 
 
 BLOCK_SIZE = 1024 * 1024 # one megabyte
-EXTENSIONS = ['avi', 'mp3', 'mp4', 'mkv', 'webm', 'mpg']
+EXTENSIONS = ['avi', 'mp3', 'mp4', 'mkv', 'webm', 'mpg', 'jpg', 'png']
 
-TEST_FOLDER = '/Users/alexanderuperenko/Desktop/Python - my projects/duplifinder_test_folder'
-TRASHBIN = '/Users/alexanderuperenko/.Trash'
+
+TRASHBIN = os.path.expanduser('~/.Trash')
 
 
 class Duplifinder():
@@ -35,12 +36,6 @@ class Duplifinder():
             self._path = path
         else:
             raise ValueError('Path is not specified or is not a directory!')
-        # self._path = None
-        # if sys.argv[-1] and os.path.isdir(sys.argv[-1]):
-        #     print('Target folder: {}'.format(sys.argv[-1]))
-        #     self._path = sys.argv[-1]
-        # else:
-        #     self._path = TEST_FOLDER
         self.engine = create_engine('sqlite:///' + self._path + os.sep + 'hash_db.sqlite3')
         dbm.metadata.create_all(bind=self.engine)
         Session = sessionmaker(bind=self.engine)
@@ -61,17 +56,17 @@ class Duplifinder():
         for root, dirs, files in os.walk(self._path):
             for file in files:
                 if file.split('.')[-1].lower() not in EXTENSIONS:
-                    print(f'Passed! {file}')
+                    print(f'Passed! File type is not allowed! {file}')
                     continue
-                    print('Continue!!!')
                 else:
                     path = os.path.join(root, file)
-                    path_to_file_in_db = self.session.query(HashTable).filter(HashTable.path==path).first()
-                    if not path_to_file_in_db:
+                    is_path_to_file_in_db = self.session.query(HashTable).filter(HashTable.path==path).first() # bool value is subject of interest
+                    if not is_path_to_file_in_db:
                         hash = self.get_hash(path)
-                        print(f'{hash} {path}', end=' ')
+                        creation_time = os.stat(path).st_birthtime
+                        print(f'{hash} {creation_time} {path}', end=' ')
                         try:
-                            self.session.add(HashTable(hash, path))
+                            self.session.add(HashTable(hash, path, creation_time))
                             self.session.commit()
                         except Exception as err:
                             print('Error occured!')
@@ -79,6 +74,8 @@ class Duplifinder():
                             self.session.rollback()
                         else:
                             print('Added!')
+                    # else:
+                    #     print(f'Already in db! {path}')
         self.session.close()
         return None
 
@@ -87,9 +84,15 @@ class Duplifinder():
         print(f'Duplicates found: {len(duplicates)}')
         duplicate_hashes = [dup.hash for dup in duplicates]
         for hash in duplicate_hashes:
-            dup_paths = self.session.query(HashTable).filter(HashTable.hash==hash).all()
-            for dup_path in dup_paths:
-                print(dup_path.hash, dup_path.path)
+            print('Query started!')
+            query = self.session.query(HashTable).filter(HashTable.hash==hash).all()
+            query.sort(key=lambda x: x.creation_time)
+            for q in query[1:]:
+                print(q.hash, q.creation_time, q.path)
+                # shutil.copyfile(q.path, TRASHBIN + os.sep + os.path.basename(q.path))
+                shutil.move(q.path, TRASHBIN + os.sep + os.path.basename(q.path))
+                print('Moved!')
+            print('Query completed!')
         self.session.close()
         return None
 
@@ -105,36 +108,6 @@ class Duplifinder():
                 self.session.commit()
         self.session.close()
         return None
-
-
-def get_session(path_to_db):
-    engine = create_engine('sqlite:///' + path_to_db)
-    Session = sessionmaker(bind=engine)
-    session = Session()
-    return session
-
-def merge_db(path):
-    engine = create_engine('sqlite:///' + path + os.sep + 'main_hash_db.sqlite3')
-    dbm.metadata.create_all(bind=engine)
-    Session = sessionmaker(bind=engine)
-    session = Session()
-    for basedir, dirs, files in os.walk(path):
-        for file in files:
-            if file == 'hash_db.sqlite3':
-                path_to_inner_db = os.path.join(basedir, file)
-                print(f'Processed: {path_to_inner_db}')
-                inner_session = get_session(path_to_inner_db)
-                entries = inner_session.query(HashTable).all()
-                inner_session.close()
-                for entry in entries:
-                    print(f'{entry.hash} {entry.path}')
-                entries_to_be_added = [HashTable(entry.hash, entry.path) for entry in entries]
-                session.add_all(entries_to_be_added)
-                session.commit()
-                print(f'{len(entries)} entries added!')
-    session.close()
-    print('Databases merged!')
-    return None
 
 
 if __name__ == '__main__':
