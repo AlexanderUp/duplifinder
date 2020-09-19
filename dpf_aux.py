@@ -54,9 +54,9 @@ def update_schema(path_to_old_db):
     conn = sqlite3.connect(path_to_old_db)
     cur = conn.cursor()
     try:
-        cur.extecute('ALTER TABLE hashes ADD COLUMN creation_time NOT NULL DEFAULT 0')
+        cur.execute('ALTER TABLE hashes ADD COLUMN creation_time NOT NULL DEFAULT 0')
         conn.commit()
-    except IntegrityError as err:
+    except sqlite3.IntegrityError as err:
         print('Error occured!')
         print(err)
     except Exception as err:
@@ -67,7 +67,7 @@ def update_schema(path_to_old_db):
     finally:
         cur.close()
         conn.close()
-        
+
     session = get_session(path_to_old_db) # path to old database file
     new_engine = create_engine('sqlite:///' + os.path.dirname(path_to_old_db) + os.sep + 'hash_db.sqlite3.updated_schema')
     dbm.metadata.create_all(bind=new_engine)
@@ -76,7 +76,6 @@ def update_schema(path_to_old_db):
     old_query = session.query(HashTable).all()
     for entry in old_query:
         new_entry = HashTable(entry.hash, entry.path, os.stat(entry.path).st_birthtime)
-        print(new_entry)
         try:
             new_session.add(new_entry)
             new_session.commit()
@@ -88,7 +87,7 @@ def update_schema(path_to_old_db):
             print('General error occured!')
             print(err)
         else:
-            print(f'Added: {new_entry}')
+            print(f'Added: {new_entry.path}')
     session.close()
     new_session.close()
     return None

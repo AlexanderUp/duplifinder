@@ -74,8 +74,8 @@ class Duplifinder():
                             self.session.rollback()
                         else:
                             print('Added!')
-                    # else:
-                    #     print(f'Already in db! {path}')
+                    else:
+                        print(f'Already in db! {path}')
         self.session.close()
         return None
 
@@ -88,16 +88,13 @@ class Duplifinder():
             query = self.session.query(HashTable).filter(HashTable.hash==hash).all()
             query.sort(key=lambda x: x.creation_time)
             for q in query[1:]:
-                print(q.hash, q.creation_time, q.path)
                 # shutil.copyfile(q.path, TRASHBIN + os.sep + os.path.basename(q.path))
                 shutil.move(q.path, TRASHBIN + os.sep + os.path.basename(q.path))
-                print('Moved!')
+                print(f'Moved! {q.path}')
             print('Query completed!')
         self.session.close()
         return None
 
-    def remove_duplicates(self):
-        pass
 
     def clean_up_db(self):
         files = self.session.query(HashTable).all()
