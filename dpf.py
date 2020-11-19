@@ -6,6 +6,7 @@ import os
 import argparse
 import hashlib
 import shutil
+import sys
 
 import dpf_model as dbm
 
@@ -23,7 +24,8 @@ mapper(dbm.HashTable, dbm.table_hashes)
 
 
 BLOCK_SIZE = 1024 * 1024 # one megabyte
-EXTENSIONS = ['avi', 'mp3', 'mp4', 'mkv', 'webm', 'mpg', 'jpg', 'png']
+MEDIA_EXTENSIONS = ['avi', 'mp3', 'mp4', 'mkv', 'webm', 'mpg', 'jpg', 'png']
+DOCS_EXTENSIONS = ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'numbers', 'pages', 'djvu', 'txt', 'epub']
 
 
 TRASHBIN = os.path.expanduser('~/.Trash')
@@ -40,42 +42,49 @@ class Duplifinder():
         dbm.metadata.create_all(bind=self.engine)
         Session = sessionmaker(bind=self.engine)
         self.session = Session()
+        self.extensions = None
         return None
 
     @staticmethod
     def get_hash(file, block_size = BLOCK_SIZE):
         with open(file, 'br') as f:
             hasher = hashlib.sha256()
-            binary_content = f.read(block_size)
-            while len(binary_content):
-                hasher.update(binary_content)
+            while True:
                 binary_content = f.read(block_size)
+                if binary_content:
+                    hasher.update(binary_content)
+                else:
+                    break
         return hasher.hexdigest()
 
     def update_db(self):
-        for root, dirs, files in os.walk(self._path):
-            for file in files:
-                if file.split('.')[-1].lower() not in EXTENSIONS:
-                    print(f'Passed! File type is not allowed! {file}')
-                    continue
-                else:
-                    path = os.path.join(root, file)
-                    is_path_to_file_in_db = self.session.query(HashTable).filter(HashTable.path==path).first() # bool value is subject of interest
-                    if not is_path_to_file_in_db:
-                        hash = self.get_hash(path)
-                        creation_time = os.stat(path).st_birthtime
-                        print(f'{hash} {creation_time} {path}', end=' ')
-                        try:
-                            self.session.add(HashTable(hash, path, creation_time))
-                            self.session.commit()
-                        except Exception as err:
-                            print('Error occured!')
-                            print(err)
-                            self.session.rollback()
-                        else:
-                            print('Added!')
+        if self.extensions:
+            for root, dirs, files in os.walk(self._path):
+                for file in files:
+                    if file.split('.')[-1].lower() not in self.extensions:
+                        print(f'Passed! File type is not allowed! {file}')
+                        continue
                     else:
-                        print(f'Already in db! {path}')
+                        path = os.path.join(root, file)
+                        is_path_to_file_in_db = self.session.query(HashTable).filter(HashTable.path==path).first() # bool value is subject of interest
+                        if not is_path_to_file_in_db:
+                            hash = self.get_hash(path)
+                            creation_time = os.stat(path).st_birthtime
+                            print(f'Adding: {hash} {creation_time} {path}', end=' ')
+                            try:
+                                self.session.add(HashTable(hash, path, creation_time))
+                                self.session.commit()
+                            except Exception as err:
+                                print('Error occured!')
+                                print(err)
+                                self.session.rollback()
+                            else:
+                                print('Added!')
+                        else:
+                            print(f'Already in db! {path}')
+        else:
+            print('No extensions specified! Aborting...')
+            sys.exit()
         self.session.close()
         return None
 
@@ -95,6 +104,15 @@ class Duplifinder():
         self.session.close()
         return None
 
+    def print_duplicates_list(self):
+        duplicates = self.session.query(HashTable).group_by(HashTable.hash).having(func.count(HashTable.hash)>1).all()
+        print(f'Total duplicates found: {len(duplicates)}')
+        for dup in duplicates:
+            query = self.session.query(HashTable).filter(HashTable.hash==dup.hash).all()
+            for q in query:
+                print(f'{q.hash} =>> {q.path}')
+        self.session.close()
+        return None
 
     def clean_up_db(self):
         files = self.session.query(HashTable).all()
@@ -113,9 +131,12 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Find file duplicates in given directory')
     parser.add_argument('path')
     group = parser.add_mutually_exclusive_group()
-    group.add_argument('-u', '--update', action='store_true', help='Update database of hashes of file in given directory')
+    group.add_argument('-m', '--media', action='store_true', help='Update database with hashes of media files in given directory')
+    group.add_argument('-d', '--documents', action='store_true', help='Update database with hashes of non-media files in given directory')
     group.add_argument('-c', '--cleanup', action='store_true', help='Clean up database')
-    parser.add_argument('-f', '--find_duplicates', action='store_true', help='Find file duplicates')
+    action_group = parser.add_mutually_exclusive_group()
+    action_group.add_argument('-f', '--find_duplicates', action='store_true', help='Find file duplicates')
+    action_group.add_argument('-l', '--list', action='store_true', help='Print list of duplicates')
     args = parser.parse_args()
 
     print(args)
@@ -123,7 +144,15 @@ if __name__ == '__main__':
 
     d = Duplifinder(args.path)
 
-    if args.update:
+    if args.media:
+        d.extensions = MEDIA_EXTENSIONS
+        print('Media files will be processed...')
+        print('Database update in progress...')
+        d.update_db()
+        print('Database updated!')
+    elif args.documents:
+        d.extensions = DOCS_EXTENSIONS
+        print('Documents and non-media files will be processed...')
         print('Database update in progress...')
         d.update_db()
         print('Database updated!')
@@ -135,6 +164,10 @@ if __name__ == '__main__':
         print('Looking for duplicates...')
         d.find_duplicates()
         print('All duplicates found!')
+    elif args.list:
+        print('Printing list of duplicates...')
+        d.print_duplicates_list()
+        print('Duplicates list printed!')
     else:
         print('Unknown option!')
     print('Exiting...')
