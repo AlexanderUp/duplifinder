@@ -48,7 +48,6 @@ class Duplifinder():
         Session = sessionmaker(bind=self.engine)
         self.session = Session()
         self.extensions = None
-        # self._path_to_be_excluded = path_to_be_excluded
         return None
 
     @staticmethod
@@ -106,7 +105,6 @@ class Duplifinder():
             query = self.session.query(HashTable).filter(HashTable.hash==hash).all()
             query.sort(key=lambda x: x.creation_time)
             for q in query[1:]:
-                # shutil.copyfile(q.path, TRASHBIN + os.sep + os.path.basename(q.path))
                 shutil.move(q.path, TRASHBIN + os.sep + os.path.basename(q.path))
                 print(f'Moved! {q.path}')
             print('Query completed!')
