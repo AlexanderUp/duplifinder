@@ -39,7 +39,7 @@ class Duplifinder():
             self._path = path
         else:
             raise ValueError('Target path is not specified or is not a directory!')
-        if os.path.isdir(path_to_be_excluded):
+        if path_to_be_excluded==None or os.path.isdir(path_to_be_excluded):
             self._path_to_be_excluded = path_to_be_excluded
         else:
             raise ValueError('Excluded path is not specified or is not a directory!')
