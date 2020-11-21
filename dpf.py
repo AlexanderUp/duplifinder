@@ -27,13 +27,17 @@ BLOCK_SIZE = 1024 * 1024 # one megabyte
 MEDIA_EXTENSIONS = ['avi', 'mp3', 'mp4', 'mkv', 'webm', 'mpg', 'jpg', 'png']
 DOCS_EXTENSIONS = ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'numbers', 'pages', 'djvu', 'txt', 'epub']
 
+# FOLDER_TO_BE_EXCLUDED = os.path.expanduser('~/Desktop/Программирование/КРИПТОГРАФИЯ')
 
 TRASHBIN = os.path.expanduser('~/.Trash')
 
 
 class Duplifinder():
 
-    def __init__(self, path):
+    def __init__(self, path, path_to_be_excluded):
+        '''
+        Current limitations: only one excluded folders supported.
+        '''
         if os.path.isdir(path):
             self._path = path
         else:
@@ -43,6 +47,7 @@ class Duplifinder():
         Session = sessionmaker(bind=self.engine)
         self.session = Session()
         self.extensions = None
+        self._path_to_be_excluded = path_to_be_excluded
         return None
 
     @staticmethod
@@ -61,11 +66,16 @@ class Duplifinder():
         if self.extensions:
             for root, dirs, files in os.walk(self._path):
                 for file in files:
+                    path = os.path.join(root, file)
+                    # if os.path.commonpath((FOLDER_TO_BE_EXCLUDED, path)) == FOLDER_TO_BE_EXCLUDED:
+                    if self._path_to_be_excluded and os.path.commonpath((self._path_to_be_excluded, path)) == self._path_to_be_excluded:
+                        print(f'Excluded: {path}')
+                        continue
                     if file.split('.')[-1].lower() not in self.extensions:
                         print(f'Passed! File type is not allowed! {file}')
                         continue
                     else:
-                        path = os.path.join(root, file)
+                        # path = os.path.join(root, file)
                         is_path_to_file_in_db = self.session.query(HashTable).filter(HashTable.path==path).first() # bool value is subject of interest
                         if not is_path_to_file_in_db:
                             hash = self.get_hash(path)
@@ -129,7 +139,8 @@ if __name__ == '__main__':
     print('=' * 75)
 
     parser = argparse.ArgumentParser(description='Find file duplicates in given directory')
-    parser.add_argument('path')
+    parser.add_argument('path_to_be_processed')
+    parser.add_argument('-e', '--exclude', default=None, help='Folders to be excluded from processing', dest='path_to_be_excluded')
     group = parser.add_mutually_exclusive_group()
     group.add_argument('-m', '--media', action='store_true', help='Update database with hashes of media files in given directory')
     group.add_argument('-d', '--documents', action='store_true', help='Update database with hashes of non-media files in given directory')
@@ -140,9 +151,10 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     print(args)
-    print(f'Target directory: {args.path}')
+    print(f'Target directory: {args.path_to_be_processed}')
+    print(f'Excluded directory: {args.path_to_be_excluded}')
 
-    d = Duplifinder(args.path)
+    d = Duplifinder(args.path_to_be_processed, args.path_to_be_excluded)
 
     if args.media:
         d.extensions = MEDIA_EXTENSIONS
