@@ -26,9 +26,6 @@ mapper(dbm.HashTable, dbm.table_hashes)
 BLOCK_SIZE = 1024 * 1024 # one megabyte
 MEDIA_EXTENSIONS = ['avi', 'mp3', 'mp4', 'mkv', 'webm', 'mpg', 'jpg', 'png']
 DOCS_EXTENSIONS = ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'numbers', 'pages', 'djvu', 'txt', 'epub']
-
-# FOLDER_TO_BE_EXCLUDED = os.path.expanduser('~/Desktop/Программирование/КРИПТОГРАФИЯ')
-
 TRASHBIN = os.path.expanduser('~/.Trash')
 
 
@@ -67,7 +64,6 @@ class Duplifinder():
             for root, dirs, files in os.walk(self._path):
                 for file in files:
                     path = os.path.join(root, file)
-                    # if os.path.commonpath((FOLDER_TO_BE_EXCLUDED, path)) == FOLDER_TO_BE_EXCLUDED:
                     if self._path_to_be_excluded and os.path.commonpath((self._path_to_be_excluded, path)) == self._path_to_be_excluded:
                         print(f'Excluded: {path}')
                         continue
@@ -75,7 +71,6 @@ class Duplifinder():
                         print(f'Passed! File type is not allowed! {file}')
                         continue
                     else:
-                        # path = os.path.join(root, file)
                         is_path_to_file_in_db = self.session.query(HashTable).filter(HashTable.path==path).first() # bool value is subject of interest
                         if not is_path_to_file_in_db:
                             hash = self.get_hash(path)
