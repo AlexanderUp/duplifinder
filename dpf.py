@@ -38,13 +38,17 @@ class Duplifinder():
         if os.path.isdir(path):
             self._path = path
         else:
-            raise ValueError('Path is not specified or is not a directory!')
+            raise ValueError('Target path is not specified or is not a directory!')
+        if os.path.isdir(path_to_be_excluded):
+            self._path_to_be_excluded = path_to_be_excluded
+        else:
+            raise ValueError('Excluded path is not specified or is not a directory!')
         self.engine = create_engine('sqlite:///' + self._path + os.sep + 'hash_db.sqlite3')
         dbm.metadata.create_all(bind=self.engine)
         Session = sessionmaker(bind=self.engine)
         self.session = Session()
         self.extensions = None
-        self._path_to_be_excluded = path_to_be_excluded
+        # self._path_to_be_excluded = path_to_be_excluded
         return None
 
     @staticmethod
