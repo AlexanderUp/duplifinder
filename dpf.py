@@ -7,6 +7,9 @@ import argparse
 import hashlib
 import shutil
 import sys
+import fnmatch
+import datetime
+
 
 import dpf_model as dbm
 
@@ -25,8 +28,12 @@ mapper(dbm.HashTable, dbm.table_hashes)
 
 BLOCK_SIZE = 1024 * 1024 # one megabyte
 MEDIA_EXTENSIONS = ['avi', 'mp3', 'mp4', 'mkv', 'webm', 'mpg', 'jpg', 'png']
-DOCS_EXTENSIONS = ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'numbers', 'pages', 'djvu', 'txt', 'epub']
+DOCS_EXTENSIONS = ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'numbers', 'pages', 'djvu', 'txt', 'epub', 'png', 'jpg', 'gif', 'zip', 'rar', 'djv']
 TRASHBIN = os.path.expanduser('~/.Trash')
+
+DB_NAME = 'hash_db.sqlite3'
+DB_NAME_PATTERN = 'hash_db.sqlite3_backup_{}_{}_{}_{}_{}'
+MAX_BACKUP_NUMBER = 5
 
 
 class Duplifinder():
@@ -43,7 +50,37 @@ class Duplifinder():
             self._path_to_be_excluded = path_to_be_excluded
         else:
             raise ValueError('Excluded path is not specified or is not a directory!')
-        self.engine = create_engine('sqlite:///' + self._path + os.sep + 'hash_db.sqlite3')
+
+        ##### Backup #####
+
+        path_to_db = os.path.join(self._path, DB_NAME)
+
+        if os.path.exists(path_to_db):
+            print('DB already exists! Backuping...')
+            time = datetime.datetime.now()
+            db_backup_name = DB_NAME_PATTERN.format(time.year, time.month, time.day, time.hour, time.minute)
+            path_to_db_backup = os.path.join(self._path, db_backup_name)
+
+            try:
+                shutil.copyfile(path_to_db, path_to_db_backup)
+            except OSError as err:
+                print(err)
+                print('Exiting...')
+                sys.exit()
+            else:
+                print('Backup created!')
+
+        backup_files = fnmatch.filter(os.listdir(self._path), 'hash_db.sqlite3_backup_*')
+        backup_files_creation_time = [os.stat(os.path.join(self._path, backup_file)).st_birthtime for backup_file in backup_files]
+        backup_files_sorted_list = list(zip(backup_files, backup_files_creation_time))
+        backup_files_sorted_list.sort(key=lambda file: file[1])
+
+        for file in backup_files_sorted_list[:-MAX_BACKUP_NUMBER]:
+            shutil.move(os.path.join(self._path, file[0]), os.path.join(TRASHBIN, file[0]))
+
+        print('Backup cleared!')
+
+        self.engine = create_engine('sqlite:///' + self._path + os.sep + DB_NAME)
         dbm.metadata.create_all(bind=self.engine)
         Session = sessionmaker(bind=self.engine)
         self.session = Session()
@@ -78,7 +115,7 @@ class Duplifinder():
                         if not is_path_to_file_in_db:
                             hash = self.get_hash(path)
                             creation_time = os.stat(path).st_birthtime
-                            print(f'Adding: {hash} {creation_time} {path}', end=' ')
+                            print(f'***** Adding: {hash} {creation_time} {path}', end=' ')
                             try:
                                 self.session.add(HashTable(hash, path, creation_time))
                                 self.session.commit()
@@ -87,7 +124,7 @@ class Duplifinder():
                                 print(err)
                                 self.session.rollback()
                             else:
-                                print('Added!')
+                                print('***** Added! *****')
                         else:
                             print(f'Already in db! {path}')
         else:
