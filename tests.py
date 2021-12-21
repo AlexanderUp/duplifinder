@@ -1,35 +1,32 @@
 # encoding:utf-8
-# tests for lister; finding&removing of duplicates
-
-# python3 -m unittest -v test_class_dictionary.py
-
-# DEVELOPMENT CURRENTLY FROZEN
-
-print("*" * 75)
+# tests for Duplifinder, v.2.0
 
 import unittest
+from pathlib import Path
 
-import lister
+from dpf import Duplifinder
+from config import TestConfig
 
-SOURCE_FOLDER = '/Users/alexanderuperenko/Desktop/Python - my projects/duplifinder_test_folder'
-DESTINATION = '/Users/alexanderuperenko/Desktop/Python - my projects/duplifinder_result'
 
-class MyTest(unittest.TestCase):
+class DuplifinderTest(unittest.TestCase):
 
     def setUp(self):
-        self.l = lister.Lister()
-        self.l.get_folder_list(SOURCE_FOLDER)
-        self.l.print_folder_list()
-        self.l._create_hash_dictionary()
-        self.l._find_duplicates()
+        self.path = Path(TestConfig.TEST_FOLDER).expanduser()
+        self.path_to_be_excluded = None
+        self.duplifinder = Duplifinder(self.path, self.path_to_be_excluded)
+        self.duplifinder.extensions = dpf.MEDIA_EXTENSIONS
 
     def tearDown(self):
         pass
 
-    def test_move_duplicates(self):
-        self.l._move_duplicates(DESTINATION)
-        self.assertFalse(os.listdir(DESTINATION))
-        self.assertTrue(bool(os.listdir(DESTINATION)))
+    @unittest.skip
+    def test_create_db_backup(self):
+        pass
+
+    @unittest.skip
+    def test_listing_functionality(self):
+        self.duplifinder.update_db()
+        self.print_duplicates_list()
 
 
 if __name__ == '__main__':

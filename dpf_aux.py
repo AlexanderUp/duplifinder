@@ -1,22 +1,17 @@
 # encoding:utf-8
 # auxiliary functions for dpf.py
 
-
 import sys
 import os
 import sqlite3
 
-
 import dpf_model as dbm
-
 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.orm import mapper
 
-
 from dpf_model import HashTable
-
 
 mapper(dbm.HashTable, dbm.table_hashes)
 
