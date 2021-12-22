@@ -53,7 +53,7 @@ class Duplifinder():
         dbm.metadata.create_all(bind=self.engine)
         Session = sessionmaker(bind=self.engine)
         self.session = Session()
-        self.extensions = None
+        self._extensions = None
         return None
 
     def _create_db_backup(self):
@@ -96,6 +96,9 @@ class Duplifinder():
         print('Database clean!')
         return None
 
+    def set_extensions(self, extensions):
+        self._extensions = extensions
+
     @staticmethod
     def get_hash(file, block_size = BLOCK_SIZE):
         with open(file, 'br') as f:
@@ -109,7 +112,7 @@ class Duplifinder():
         return hasher.hexdigest()
 
     def update_db(self):
-        if self.extensions:
+        if self._extensions:
             self._create_db_backup()
             for root, dirs, files in os.walk(self._path):
                 for file in files:
@@ -118,7 +121,7 @@ class Duplifinder():
                         print(f'>>>> Excluded: <{path}>')
                         continue
 
-                    if file.split('.')[-1].lower() not in self.extensions:
+                    if file.split('.')[-1].lower() not in self._extensions:
                         print(f'==== Passed! File type is not allowed! <{file}>')
                         continue
 
@@ -143,9 +146,10 @@ class Duplifinder():
         return None
 
     def feed_duplicate_hash_query(self):
-        # returns list of duplicate enrties (instance of class <HashTable>), not a hash itself
+        '''Returns list of duplicate enrties (instances of class <HashTable>), not a list of hashes itself.'''
         duplicates = self.session.query(HashTable).group_by(HashTable.hash).having(func.count(HashTable.hash)>1).all()
-        print(f'Duplicated files found: {len(duplicates)}')
+        print(f'Duplicated hashes found: {len(duplicates)}')
+        print('************************************')
         for duplicate in duplicates:
             query = self.session.query(HashTable).filter(HashTable.hash==duplicate.hash).all()
             query.sort(key=lambda duplicate: duplicate.creation_time)
@@ -162,19 +166,18 @@ class Duplifinder():
     def remove_duplicates(self):
         for query in self.feed_duplicate_hash_query():
             for duplicate in query[1:]:
+                self.session.delete(duplicate)
                 try:
-                    self.session.delete(duplicate)
                     shutil.move(q.path, TRASHBIN + os.sep + os.path.basename(q.path))
-                except sqlalchemy.exec.SQLAlchemyError as err:
-                    print(err)
                 except OSError as err:
                     print(err)
                 else:
                     print(f'Deleteted! {duplicate.path}')
-                finally:
-                    self.session.rollback()
-                    self.session.close()
+        try:
             self.session.commit()
+        except sqlalchemy.exc.SQLAlchemyError as err:
+            print(err)
+            self.session.rollback()
         self.session.close()
         return None
 
@@ -205,15 +208,14 @@ if __name__ == '__main__':
 
     d = Duplifinder(args.path_to_be_processed, args.path_to_be_excluded)
 
-    # replace d.extensions with non-state changing method
     if args.media:
-        d.extensions = MEDIA_EXTENSIONS
+        d.set_extensions(MEDIA_EXTENSIONS)
         print('Media files will be processed...')
         print('Database update in progress...')
         d.update_db()
         print('Database updated!')
     elif args.documents:
-        d.extensions = DOCS_EXTENSIONS
+        d.set_extensions(DOCS_EXTENSIONS)
         print('Documents and non-media files will be processed...')
         print('Database update in progress...')
         d.update_db()
