@@ -31,4 +31,4 @@ class HashTable():
         self.creation_time = creation_time
 
     def __repr__(self):
-        return f'<File(Hash: {self.hash}, creation time: {self.creation_time}, path: {os.path.basename(self.path)})>'
+        return f'<Hash: {self.hash}, creation time: {self.creation_time}, path: {os.path.basename(self.path)}>'

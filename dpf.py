@@ -168,7 +168,7 @@ class Duplifinder():
             for duplicate in query[1:]:
                 self.session.delete(duplicate)
                 try:
-                    shutil.move(q.path, TRASHBIN + os.sep + os.path.basename(q.path))
+                    shutil.move(duplicate.path, TRASHBIN + os.sep + os.path.basename(duplicate.path))
                 except OSError as err:
                     print(err)
                 else:
