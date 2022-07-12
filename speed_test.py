@@ -1,35 +1,9 @@
 import os
 from dataclasses import asdict, dataclass
-from hashlib import (md5, sha1, sha224, sha256, sha384, sha512,
-                     sha3_224, sha3_256, sha3_384, sha3_512)
 from time import perf_counter
 from typing import Callable, Union
 
 from config import TestHashSpeed
-
-BLOCK_SIZE: int = 1024  # one kbyte
-
-HASH_ALGOS: tuple[Callable, ...] = (
-    md5, sha1, sha224, sha256, sha384, sha512,
-    sha3_224, sha3_256, sha3_384, sha3_512,
-    )
-
-SIZES: dict[Union[int, None], str] = {
-    1024: '1 Kbyte',
-    1048576: '1 Mbyte',
-    5242880: '5 Mbyte',
-    10485760: '10 Mbyte',
-    None: 'Entire file',
-    }
-
-# one kbyte, one mbyte, five mbyte, ten mbyte, entire file
-BLOCK_SIZES: tuple[Union[int, None], ...] = (
-    1024,
-    1024 ** 2,
-    1024 ** 2 * 5,
-    1024 ** 2 * 10,
-    None
-    )
 
 
 @dataclass
@@ -50,14 +24,14 @@ class TestResult:
 
 
 def get_hash(path_to_file: str,
-             hash_algo: Callable = sha256,
-             block_size: Union[int, None] = BLOCK_SIZE,
+             hash_algo: Callable,
+             block_size: Union[int, None],
              ) -> str:
-    hasher: Callable = hash_algo()
+    hasher = hash_algo()
     with open(path_to_file, 'br') as source:
         while chunk := source.read(block_size):
-            hasher.update(chunk)  # type: ignore
-    return hasher.hexdigest()  # type: ignore
+            hasher.update(chunk)
+    return hasher.hexdigest()
 
 
 def test_speed(path_to_folder: str,
@@ -90,10 +64,10 @@ if __name__ == '__main__':
     test_folder: str = os.path.expanduser(test_config.TEST_FOLDER)
     result_template: str = '{block_size_named!r:<14} {result}'
 
-    for hash_algo in HASH_ALGOS:
-        for block_size in BLOCK_SIZES:
+    for hash_algo in test_config.HASH_ALGOS:
+        for block_size in test_config.BLOCK_SIZES:
             result = test_speed(test_folder, hash_algo, block_size)
-            block_size_named = SIZES.get(block_size)
+            block_size_named = test_config.SIZES.get(block_size)
             print(result_template.format(block_size_named=block_size_named,
                                          result=result))
 

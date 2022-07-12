@@ -12,23 +12,13 @@ from sqlalchemy import func
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import mapper
 
-import dpf_model as dbm
+from config import Config
 from dpf_aux import get_hash, get_session
-from dpf_model import FileHash
+from dpf_model import FileHash, table_hashes
 
-mapper(dbm.FileHash, dbm.table_hashes)
+mapper(FileHash, table_hashes)
 
-BLOCK_SIZE = 1024 * 1024  # one megabyte
-MEDIA_EXTENSIONS = ['.avi', '.mp3', '.mp4', '.mkv', '.webm', '.mpg', '.jpg',
-                    '.png']
-DOCS_EXTENSIONS = ['.pdf', '.doc', '.docx', '.xls', '.xlsx', '.numbers',
-                   '.pages', '.djvu', '.djv', '.txt', '.epub', '.png',
-                   '.jpg', '.gif', '.zip', '.rar',
-                   ]
-TRASHBIN = os.path.expanduser('~/.Trash')
-DB_NAME = 'hash_db.sqlite3'
-DB_BACKUP_NAME_PATTERN = '{}_backup_{}_{}_{}_{}_{}'
-BACKUP_MAX_NUMBER = 5
+config = Config()
 
 
 class Duplifinder():
@@ -53,15 +43,15 @@ class Duplifinder():
             raise TypeError('Excluded path is not specified or is not'
                             'a directory!')
 
-        self._path_to_db: str = os.path.join(self._path, DB_NAME)
+        self._path_to_db: str = os.path.join(self._path, config.DB_NAME)
         self.session = get_session(self._path_to_db)
 
     def _create_db_backup(self) -> None:
         if os.path.exists(self._path_to_db):
             print('Database already exists! Backuping...')
             time: datetime = datetime.now()
-            db_backup_name: str = DB_BACKUP_NAME_PATTERN.format(
-                DB_NAME, time.year, time.month, time.day, time.hour,
+            db_backup_name: str = config.DB_BACKUP_NAME_PATTERN.format(
+                config.DB_NAME, time.year, time.month, time.day, time.hour,
                 time.minute)
             path_to_db_backup: str = os.path.join(self._path, db_backup_name)
 
@@ -75,17 +65,17 @@ class Duplifinder():
                 print('Backup created!')
 
         backup_file_names: list = fnmatch.filter(os.listdir(self._path),
-                                                 f'{DB_NAME}_backup_*')
+                                                 f'{config.DB_NAME}_backup_*')
         backup_file_names.sort(
             key=lambda file: os.stat(
                 os.path.join(self._path, file)
                 ).st_birthtime
             )
 
-        for file in backup_file_names[:-BACKUP_MAX_NUMBER]:
+        for file in backup_file_names[:-config.BACKUP_MAX_NUMBER]:
             try:
                 shutil.move(os.path.join(self._path, file),
-                            os.path.join(TRASHBIN, file))
+                            os.path.join(config.TRASHBIN, file))
             except OSError as err:
                 print(err)
                 print('Error during deleting old db backups! Exiting...')
@@ -108,8 +98,8 @@ class Duplifinder():
         else:
             print('Database clean!')
 
-    def set_extensions(self, extensions: list[str]) -> None:
-        self._extensions: list[str] = extensions
+    def set_extensions(self, extensions: set[str]) -> None:
+        self._extensions: set[str] = extensions
 
     def update_db(self) -> None:
         if self._extensions:
@@ -142,7 +132,7 @@ class Duplifinder():
                         print(f'>>>> Already in db! <{path}>')
                         continue
 
-                    hash: str = get_hash(path, block_size=BLOCK_SIZE)
+                    hash: str = get_hash(path, block_size=config.BLOCK_SIZE)
                     creation_time: float = os.stat(path).st_birthtime
                     print(f'******** Adding: <{path}> **** Added!')
 
@@ -195,7 +185,7 @@ class Duplifinder():
                 duplicate.is_deleted = True
                 try:
                     shutil.move(duplicate.path,
-                                os.path.join(TRASHBIN,
+                                os.path.join(config.TRASHBIN,
                                              os.path.basename(duplicate.path)))
                 except OSError as err:
                     print(err)
@@ -268,13 +258,13 @@ if __name__ == '__main__':
     d = Duplifinder(args.path_to_be_processed, args.path_to_be_excluded)
 
     if args.media:
-        d.set_extensions(MEDIA_EXTENSIONS)
+        d.set_extensions(config.MEDIA_EXTENSIONS)
         print('Media files will be processed...')
         print('Database update in progress...')
         d.update_db()
         print('Database updated!')
     elif args.documents:
-        d.set_extensions(DOCS_EXTENSIONS)
+        d.set_extensions(config.DOCS_EXTENSIONS)
         print('Documents and non-media files will be processed...')
         print('Database update in progress...')
         d.update_db()
