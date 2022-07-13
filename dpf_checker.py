@@ -1,6 +1,7 @@
 '''Duplicate checker.'''
 
 import os
+import shutil
 import sys
 from time import perf_counter
 
@@ -43,10 +44,19 @@ class DpfChecker():
                                         .filter_by(hash=hash)
                                         .one_or_none())
                 if is_exists:
-                    print(f'>>> To be deleted: {path_to_file}')
-                    # to do: add deletion functionality
+                    print(f'>>> To be deleted: {path_to_file}', end='\t')
+                    dest_trashbin_path: str = os.path.join(config.TRASHBIN,
+                                                           file)
+                    try:
+                        shutil.move(path_to_file, dest_trashbin_path)
+                    except OSError as err:
+                        print('Error occured!')
+                        print(err)
+                    else:
+                        print('=== Deleted! ===')
                 else:
                     print(f'*** New file: {path_to_file}')
+        print('>>>>>> Check completed! <<<<<<')
 
 
 if __name__ == '__main__':
