@@ -63,7 +63,7 @@ if __name__ == '__main__':
     print('*' * 125)
 
     path_to_db = sys.argv[1]
-    folder = sys.argv[2]
+    folder = os.path.dirname(path_to_db)
     print(f'DB: {path_to_db}')
     print(f'Folder: {folder}')
 
