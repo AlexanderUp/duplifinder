@@ -116,8 +116,7 @@ class Duplifinder():
                             continue
 
                     _, extention = os.path.splitext(file)
-                    extention.lower()
-                    if extention not in self._extensions:
+                    if extention.lower() not in self._extensions:
                         print('==== Passed! File type is not allowed!'
                               f'<{file}>')
                         continue
@@ -155,6 +154,7 @@ class Duplifinder():
         duplicate_hash_entities: list[tuple[str]] = (
             self.session
                 .query(FileHash.hash)
+                .filter(~FileHash.is_deleted)
                 .group_by(FileHash.hash)
                 .having(func.count(FileHash.hash) > 1)
                 .all()
