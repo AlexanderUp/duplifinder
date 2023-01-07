@@ -1,5 +1,3 @@
-'''Find file duplicates in given folder.'''
-
 import argparse
 import fnmatch
 import os
@@ -10,13 +8,10 @@ from typing import Generator
 
 from sqlalchemy import func
 from sqlalchemy.exc import SQLAlchemyError
-from sqlalchemy.orm import mapper
 
 from config import Config
 from dpf_aux import get_hash, get_session
-from dpf_model import FileHash, table_hashes
-
-mapper(FileHash, table_hashes)
+from dpf_model import FileHash
 
 config = Config()
 

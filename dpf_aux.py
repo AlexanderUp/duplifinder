@@ -5,12 +5,12 @@ import hashlib
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-import dpf_model as dbm
+from dpf_model import mapper_registry
 
 
-def get_session(path_to_db: str, model=dbm):
+def get_session(path_to_db: str, mapper_registry=mapper_registry):
     engine = create_engine('sqlite:///' + path_to_db)
-    model.metadata.create_all(bind=engine)
+    mapper_registry.metadata.create_all(bind=engine)
     Session = sessionmaker(bind=engine)
     return Session()
 
