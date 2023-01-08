@@ -1,5 +1,3 @@
-'''Auxiliary functions for <dpf.py>.'''
-
 import hashlib
 
 from sqlalchemy import create_engine

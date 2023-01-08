@@ -1,5 +1,3 @@
-'''Database model for duplifinder.'''
-
 import os
 
 from sqlalchemy import Boolean, Column, Integer, String, Table

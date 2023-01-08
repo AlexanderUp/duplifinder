@@ -76,11 +76,11 @@ class Duplifinder():
                 print('Error during deleting old db backups! Exiting...')
         print('Backups cleared!')
 
-    def _clean_up_db(self):
+    def _clean_up_db(self) -> None:
         print('Cleaning database...')
-        files: list = self.session.query(FileHash).all()
+        files: list[FileHash] = self.session.query(FileHash).all()
         for file in files:
-            if not os.path.exists(file.path):
+            if not os.path.exists(file.path) and not file.is_deleted:
                 print('File doesn\'t exist! Marking as has been deleted...\t'
                       f'{file.path}')
                 file.is_deleted = True
@@ -131,11 +131,11 @@ class Duplifinder():
                     print(f'******** Adding: <{path}> **** Added!')
 
                     self.session.add(FileHash(hash, path, creation_time))
-                    try:
-                        self.session.commit()
-                    except Exception as err:
-                        print(err)
-                        self.session.rollback()
+            try:
+                self.session.commit()
+            except Exception as err:
+                print(err)
+                self.session.rollback()
             self._clean_up_db()
         else:
             print('No extensions specified!')
@@ -177,7 +177,6 @@ class Duplifinder():
     def remove_duplicates(self):
         for query in self.duplicate_hash_query_generator():
             for duplicate in query[1:]:
-                duplicate.is_deleted = True
                 try:
                     shutil.move(duplicate.path,
                                 os.path.join(config.TRASHBIN,
@@ -185,6 +184,7 @@ class Duplifinder():
                 except OSError as err:
                     print(err)
                 else:
+                    duplicate.is_deleted = True
                     print(f'Deleteted! {duplicate.path}')
         try:
             self.session.commit()

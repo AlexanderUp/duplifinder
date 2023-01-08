@@ -2,6 +2,9 @@ import os
 import shutil
 import sys
 from time import perf_counter
+from typing import Union
+
+from sqlalchemy.orm import Query
 
 from config import Config
 from dpf_aux import get_hash, get_session
@@ -36,12 +39,12 @@ class DpfChecker():
                 path_to_file: str = os.path.join(root, file)
                 hash: str = get_hash(path_to_file,
                                      block_size=config.BLOCK_SIZE)
-                is_exists: tuple = (self.session
-                                        .query(FileHash.hash)
-                                        .filter_by(hash=hash)
-                                        .one_or_none())
-
                 self._size_processed += os.path.getsize(path_to_file)
+
+                is_exists: Union[Query, None] = (self.session
+                                                     .query(FileHash.hash)
+                                                     .filter_by(hash=hash)
+                                                     .first())
 
                 if is_exists:
                     print(f'>>> To be deleted: {path_to_file}', end='\t')
