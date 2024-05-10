@@ -1,27 +1,29 @@
 repos:
 -   repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v2.3.0
+    rev: v4.5.0
     hooks:
     -   id: check-yaml
     -   id: end-of-file-fixer
     -   id: trailing-whitespace
     -   id: requirements-txt-fixer
-    -   id: double-quote-string-fixer
     -   id: no-commit-to-branch
+        args: [--branch, main]
 
 -   repo: https://github.com/psf/black
-    rev: 23.3.0
+    rev: 24.3.0
     hooks:
     -   id: black
-        args: [ "--skip-string-normalization", "--line-length", "89" ]
+        args: ["--line-length", "140"]
         language: python
+        exclude: ^alembic/.*$
 
 -   repo: https://github.com/pycqa/isort
-    rev: 5.12.0
+    rev: 5.13.2
     hooks:
-    -   id: isort
+      - id: isort
         name: isort (python)
-        args: ["--profile", "black", "--filter-files", "--line-length", "89"]
+        args: ["--profile", "black", "--filter-files", "--line-length", "140"]
+        exclude: ^alembic/.*$
 
 -   repo: local
     hooks:
@@ -36,3 +38,4 @@ repos:
         entry: mypy
         language: python
         types: [python]
+        args: ["--install-types", "--non-interactive", "--ignore-missing-imports"]

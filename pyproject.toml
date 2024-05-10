@@ -1,26 +1,27 @@
 [tool.black]
-skip-string-normalization=true
 skip-magic-trailing-comma=false
-line-length=89
+line-length=140
 
 [tool.flake8]
-ignore=['WPS305', 'WPS306', 'WPS115', 'WPS210', 'WPS213', 'WPS323', 'WPS326', 'WPS332', 'WPS348', 'D100', 'D101', 'D102', 'D103', 'D104', 'D105', 'D107', 'DAR101', 'DAR201', 'D205',]
+inline-quotes="double"
+ignore=["WPS305", "WPS306", "WPS115", "WPS210", "WPS213", "WPS221", "WPS323", "WPS326", "WPS332", "WPS348", "D100", "D101", "D102", "D103", "D104", "D105", "D107", "DAR101", "DAR201", "D205",]
 per-file-ignores = [
-    'config.py:WPS235',
-    'dpf_aux.py:N806',
-    'dpf.py:CCR001,D401,DAR401,WPS220,WPS226,WPS231,WPS232,WPS337,WPS615,W503',
-    'dpf_checker.py:CCR001,WPS210,WPS220,WPS231,WPS232',
-    'speed_test.py:WPS210',
+    "config.py:WPS235",
+    "dpf_aux.py:N806",
+    "dpf.py:CCR001,D401,DAR401,WPS220,WPS226,WPS231,WPS232,WPS337,WPS615,W503",
+    "dpf_checker.py:CCR001,WPS210,WPS220,WPS231,WPS232",
+    "speed_test.py:WPS210",
 ]
-exclude=[]
+exclude=[".git", "*.md", "__pycache__/", "alembic/*.py",]
 max-cognitive-complexity=10
-max-line-length=89
-class_attributes_order=['field', 'meta_class', 'nested_class', 'magic_method', 'property_method', 'static_method', 'class_method', 'method', 'private_method']
+max-line-length=140
+class_attributes_order=["field", "meta_class", "nested_class", "magic_method", "property_method", "static_method", "class_method", "method", "private_method"]
 
 [tool.isort]
+line_length=150
 known_first_party=[]
-profile='black'
+profile="black"
 
 [tool.mypy]
-exclude=[]
+exclude=["__pycache__/"]
 ignore_missing_imports=true
